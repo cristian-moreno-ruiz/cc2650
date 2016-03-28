@@ -78,6 +78,7 @@
 #include "simpleBLEPeripheral.h"
 
 #include <ti/drivers/lcd/LCDDogm1286.h>
+#include <ti/drivers/PIN/PINCC26XX.h>
 
 /*********************************************************************
  * CONSTANTS
@@ -256,6 +257,18 @@ static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "Simple BLE Peripheral";
 static gattMsgEvent_t *pAttRsp = NULL;
 static uint8_t rspTxRetry = 0;
 
+// Pins used by the application
+static PIN_Config SBP_configTable[] =
+{
+    Board_LED2       | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,     /* LED initially off             */
+    Board_KEY_RIGHT  | PIN_INPUT_EN | PIN_PULLUP | PIN_HYSTERESIS,        /* Button is active low          */
+
+    PIN_TERMINATE
+};
+
+static PIN_State sbpPins;
+static PIN_Handle hSbpPins;
+
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -286,6 +299,17 @@ void SimpleBLEPeripheral_processOadWriteCB(uint8_t event, uint16_t connHandle,
 #endif //FEATURE_OAD
 
 static void SimpleBLEPeripheral_clockHandler(UArg arg);
+
+// event
+#define SBP_BTN_EVT 0x0010
+
+// ISR in hardware context
+static void buttonHwiFxn(PIN_Handle hPin, PIN_Id pinId){
+
+    events |= SBP_BTN_EVT;
+    Semaphore_post(sem);
+
+}
 
 
 
@@ -382,6 +406,17 @@ static void SimpleBLEPeripheral_init(void)
   Util_constructClock(&periodicClock, SimpleBLEPeripheral_clockHandler,
                       SBP_PERIODIC_EVT_PERIOD, 0, false, SBP_PERIODIC_EVT);
   
+  // Open Pins and configure interrupt
+  hSbpPins = PIN_open(&sbpPins, SBP_configTable);
+
+  PIN_registerIntCb(hSbpPins, buttonHwiFxn);
+
+  PIN_setConfig(hSbpPins, PIN_BM_IRQ, Board_KEY_RIGHT | PIN_IRQ_NEGEDGE);
+
+  PIN_setConfig(hSbpPins, PINCC26XX_BM_WAKEUP, Board_KEY_RIGHT | PINCC26XX_WAKEUP_NEGEDGE);
+
+
+
 #ifndef SENSORTAG_HW
   Board_openLCD();
 #endif //SENSORTAG_HW
@@ -551,6 +586,22 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
     // message is queued to the message receive queue of the thread or when
     // ICall_signal() function is called onto the semaphore.
     ICall_Errno errno = ICall_wait(ICALL_TIMEOUT_FOREVER);
+
+
+    //events = SBP_BTN_EVT;
+
+// event processing
+    if(events & SBP_BTN_EVT){
+        events &= ~SBP_BTN_EVT;
+
+        int LED_value =  PIN_getOutputValue(Board_LED2);
+
+        if(LED_value == 1){
+            PIN_setOutputValue(hSbpPins, Board_LED2, 0);
+        } else{
+            PIN_setOutputValue(hSbpPins, Board_LED2, 1);
+        }
+    }
 
     if (errno == ICALL_ERRNO_SUCCESS)
     {

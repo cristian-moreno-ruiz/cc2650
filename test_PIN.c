@@ -1,6 +1,6 @@
 ///// #########    1    #########
 
-#include <ti/drivers/PINCC26XX.h>
+#include <ti/drivers/PIN/PINCC26XX.h>
 
 
 ///// #########    2    #########
