@@ -179,7 +179,7 @@ BIN_OUTPUTS__QUOTED += \
 all: SimpleBLEPeripheralStack.out
 
 # Tool invocations
-SimpleBLEPeripheralStack.out: $(OBJS) $(GEN_CMDS)
+SimpleBLEPeripheralStack.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Linker'
 	"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armcl" --cmd_file="C:/ti/simplelink/ble_cc26xx_2_01_01_44627/Projects/ble/SimpleBLEPeripheral/CC26xx/CCS/SimpleBLEPeripheralStack/../../IAR/Stack/CC2640/../../../../../config/buildComponents.opt" --cmd_file="C:/ti/simplelink/ble_cc26xx_2_01_01_44627/Projects/ble/SimpleBLEPeripheral/CC26xx/CCS/SimpleBLEPeripheralStack/../../IAR/Stack/CC2640/buildConfig.opt"  -mv7M3 --code_state=16 --abi=eabi -me -O4 --opt_for_speed=0 --define=USE_ICALL --define=OSAL_SNV=2 --define=FLASH_ROM_BUILD --define=POWER_SAVING --define=GATT_NO_CLIENT --define=INCLUDE_AES_DECRYPT --define=xPM_DISABLE_PWRDOWN --define=xTESTMODES --define=xTEST_BLEBOARD --define=OSAL_CBTIMER_NUM_TASKS=1 --define=xDEBUG --define=HALNODEBUG --define=xDEBUG_GPIO --define=xDEBUG_ENC --define=xDEBUG_SW_TRACE --define=NEAR_FUNC= --define=DATA= --define=CC26XXWARE --define=CC26XX --diag_wrap=off --diag_suppress=48 --display_error_number --diag_warning=225 -z -m"SimpleBLEPeripheralStack.map" --heap_size=0 --stack_size=256 -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include" --reread_libs --display_error_number --diag_wrap=off --warn_sections --diag_suppress=16002-D --diag_suppress=10247-D --diag_suppress=10325-D --xml_link_info="SimpleBLEPeripheralStack_linkInfo.xml" --entry_point=startup_entry --rom_model --compress_dwarf=on --unused_section_elimination=on -o "SimpleBLEPeripheralStack.out" $(ORDERED_OBJS)

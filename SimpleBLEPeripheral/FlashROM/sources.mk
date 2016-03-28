@@ -122,6 +122,7 @@ S64_DEPS__QUOTED :=
 SUBDIRS := \
 TOOLS \
 Startup \
+Source \
 PROFILES \
 ICallBLE \
 ICall \

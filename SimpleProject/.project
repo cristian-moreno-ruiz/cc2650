@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>SimpleBLEPeripheral</name>
+	<name>SimpleProject</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -80,6 +80,16 @@
 			<name>Application/board_lcd.h</name>
 			<type>1</type>
 			<locationURI>PARENT-5-ORG_PROJ_DIR/common/cc26xx/board_lcd.h</locationURI>
+		</link>
+		<link>
+			<name>Application/simpleBLEPeripheral.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-ORG_PROJ_DIR/Source/Application/simpleBLEPeripheral.c</locationURI>
+		</link>
+		<link>
+			<name>Application/simpleBLEPeripheral.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-ORG_PROJ_DIR/Source/Application/simpleBLEPeripheral.h</locationURI>
 		</link>
 		<link>
 			<name>Application/util.c</name>
@@ -305,6 +315,11 @@
 			<name>Startup/ccfg_appBLE.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-ORG_PROJ_DIR/Config/ccfg_appBLE.c</locationURI>
+		</link>
+		<link>
+			<name>Startup/main.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-ORG_PROJ_DIR/Source/Application/main.c</locationURI>
 		</link>
 		<link>
 			<name>TOOLS/appBLE.cfg</name>

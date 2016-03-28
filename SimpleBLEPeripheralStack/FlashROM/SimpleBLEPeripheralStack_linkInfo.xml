@@ -2,7 +2,7 @@
 <link_info>
    <banner>TI ARM Linker PC v5.2.7</banner>
    <copyright>Copyright (c) 1996-2015 Texas Instruments Incorporated</copyright>
-   <link_time>0x56f67231</link_time>
+   <link_time>0x56f8ff6d</link_time>
    <link_errors>0x0</link_errors>
    <output_file>SimpleBLEPeripheralStack.out</output_file>
    <entry_point>
@@ -13,8 +13,8 @@
       <input_file id="fl-177">
          <path>C:\Users\cristian\AppData\Local\Temp\</path>
          <kind>object</kind>
-         <file>164802</file>
-         <name>164802</name>
+         <file>117002</file>
+         <name>117002</name>
       </input_file>
       <input_file id="fl-1f">
          <path>C:\ti\simplelink\ble_cc26xx_2_01_01_44627\Projects\ble\SimpleBLEPeripheral\CC26xx\CCS\SimpleBLEPeripheralStack\..\..\IAR\Stack\CC2640\..\..\..\..\..\..\common\BLE_ROM_Releases\04242014\</path>
