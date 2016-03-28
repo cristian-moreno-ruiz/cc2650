@@ -43,6 +43,8 @@
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
 
+#include <ti/sysbios/knl/Clock.h>
+
 /* TI-RTOS Header files */
 #include <ti/drivers/PIN.h>
 #include <ti/drivers/pin/PINCC26XX.h>
@@ -66,6 +68,9 @@ static PIN_State pinState;
 
 Task_Struct workTask;
 static uint8_t workTaskStack[256];
+
+Task_Struct urgentWorkTask;
+static uint8_t urgentWorkTaskStack[256];
 
 /*
  * Initial pin configuration table
@@ -95,7 +100,29 @@ Void workTaskFunc(UArg arg0, UArg arg1)
     	doWork();
 
     	/* Wait a while, because doWork should be a periodic thing, not continuous.*/
-    	CPUdelay(24e6);
+    	Task_sleep(1000 * (1000 / Clock_tickPeriod));
+    }
+}
+
+void doUrgentWork(void)
+{
+	PIN_setOutputValue(pinHandle, Board_LED2, 1);
+    FakeBlockingFastWork(); /* Pretend to do something useful but time-consuming */
+	PIN_setOutputValue(pinHandle, Board_LED2, 0);
+}
+
+Void urgentWorkTaskFunc(UArg arg0, UArg arg1)
+{
+    while (1) {
+
+    	if(PIN_getInputValue(Board_KEY_RIGHT) == 0){
+        	/* Do work */
+        	doUrgentWork();
+    	}
+
+
+    	/* Wait a while, because doWork should be a periodic thing, not continuous.*/
+    	Task_sleep(100 * (1000 / Clock_tickPeriod));
     }
 }
 
@@ -122,6 +149,15 @@ int main(void)
 	workTaskParams.stack = &workTaskStack;
 
 	Task_construct(&workTask, workTaskFunc, &workTaskParams, NULL);
+
+	// Set up the urgent Task
+	Task_Params urgentWorkTaskParams;
+	Task_Params_init(&urgentWorkTaskParams);
+	urgentWorkTaskParams.stackSize = 256;
+	urgentWorkTaskParams.priority = 3;
+	urgentWorkTaskParams.stack = &urgentWorkTaskStack;
+
+	Task_construct(&urgentWorkTask, urgentWorkTaskFunc, &urgentWorkTaskParams, NULL);
 
     /* Start kernel. */
     BIOS_start();
