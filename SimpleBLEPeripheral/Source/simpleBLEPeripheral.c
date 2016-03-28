@@ -409,7 +409,7 @@ static void SimpleBLEPeripheral_init(void)
   // Open Pins and configure interrupt
   hSbpPins = PIN_open(&sbpPins, SBP_configTable);
 
-  PIN_registerIntCb(hSbpPins, buttonHwiFxn);
+  PIN_registerIntCb(hSbpPins, &buttonHwiFxn);
 
   PIN_setConfig(hSbpPins, PIN_BM_IRQ, Board_KEY_RIGHT | PIN_IRQ_NEGEDGE);
 
