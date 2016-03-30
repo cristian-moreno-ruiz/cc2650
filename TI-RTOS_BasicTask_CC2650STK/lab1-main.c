@@ -42,7 +42,7 @@
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
-
+#include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Clock.h>
 
 /* TI-RTOS Header files */
@@ -82,6 +82,7 @@ PIN_Config pinTable[] = {
     Board_LED0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
     Board_LED1 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
     Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP,
+	Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP,
     PIN_TERMINATE
 };
 
@@ -107,7 +108,7 @@ Void workTaskFunc(UArg arg0, UArg arg1)
 void doUrgentWork(void)
 {
 	PIN_setOutputValue(pinHandle, Board_LED2, 1);
-    FakeBlockingFastWork(); /* Pretend to do something useful but time-consuming */
+    FakeBlockingSlowWork(); /* Pretend to do something useful but time-consuming */
 	PIN_setOutputValue(pinHandle, Board_LED2, 0);
 }
 
@@ -115,15 +116,17 @@ Void urgentWorkTaskFunc(UArg arg0, UArg arg1)
 {
     while (1) {
 
-    	if(PIN_getInputValue(Board_KEY_RIGHT) == 0){
-        	/* Do work */
-        	doUrgentWork();
-    	}
+    	// Wait for the semaphore (posted on button press)
+    	Semaphore_pend(urgentWorkSem, BIOS_WAIT_FOREVER);
+        /* Do work */
+        doUrgentWork();
 
-
-    	/* Wait a while, because doWork should be a periodic thing, not continuous.*/
-    	Task_sleep(100 * (1000 / Clock_tickPeriod));
     }
+}
+
+void pinInterruptHandler(PIN_Handle handle, PIN_Id pinId){
+	// Signal the semaphore (button has been pressed)
+	Semaphore_post(urgentWorkSem);
 }
 
 /*
@@ -141,20 +144,27 @@ int main(void)
         System_abort("Error initializing board pins\n");
     }
 
+
+
+    // Register Right Button Hw interrupt
+    PIN_registerIntCb(pinHandle, pinInterruptHandler);
+    PIN_setInterrupt(pinHandle, Board_KEY_RIGHT | PIN_IRQ_NEGEDGE);
+
     /* Set up the led task */
 	Task_Params workTaskParams;
 	Task_Params_init(&workTaskParams);
 	workTaskParams.stackSize = 256;
-	workTaskParams.priority = 2;
+	workTaskParams.priority = 1;
 	workTaskParams.stack = &workTaskStack;
 
 	Task_construct(&workTask, workTaskFunc, &workTaskParams, NULL);
+
 
 	// Set up the urgent Task
 	Task_Params urgentWorkTaskParams;
 	Task_Params_init(&urgentWorkTaskParams);
 	urgentWorkTaskParams.stackSize = 256;
-	urgentWorkTaskParams.priority = 3;
+	urgentWorkTaskParams.priority = 2;
 	urgentWorkTaskParams.stack = &urgentWorkTaskStack;
 
 	Task_construct(&urgentWorkTask, urgentWorkTaskFunc, &urgentWorkTaskParams, NULL);
