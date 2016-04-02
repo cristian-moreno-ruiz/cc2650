@@ -44,14 +44,14 @@
 #include "bsp_i2c.h"
 
 #include "ext_flash.h"
-#include "sensor_tmp007.h"
+//#include "sensor_tmp007.h"
 #if defined(CC2650ST_0120)
-#include "sensor_hdc1000.h"
+//#include "sensor_hdc1000.h"
 #else
-#include "sensor_sht21.h"
+//#include "sensor_sht21.h"
 #endif
 
-#include "sensor_bmp280.h"
+//#include "sensor_bmp280.h"
 #include "sensor_opt3001.h"
 #include "sensor_mpu9250.h"
 
@@ -128,20 +128,20 @@ uint8_t sensorTestExecute(uint8_t testMap)
   // 1. Temp sensor test
   if (testMap & ST_IRTEMP)
   {
-    if (sensorTmp007Test())
+    /*if (sensorTmp007Test())
     {
       selfTestResult |= ST_IRTEMP;
-    }
+    }*/
   }
 
   // 2. Humidity  sensor test
   if (testMap & ST_HUMIDITY)
   {
 #if defined(CC2650ST_0120)
-    if (sensorHdc1000Test())
+    /*if (sensorHdc1000Test())
     {
       selfTestResult |= ST_HUMIDITY;
-    }
+    }*/
 #else
     if (sensorSht21Test())
     {
@@ -153,10 +153,10 @@ uint8_t sensorTestExecute(uint8_t testMap)
   // 3. Barometer test
   if (testMap & ST_PRESSURE)
   {
-    if (sensorBmp280Test())
+    /*if (sensorBmp280Test())
     {
       selfTestResult |= ST_PRESSURE;
-    }
+    }*/
   }
 
   // 3. Optic sensor test

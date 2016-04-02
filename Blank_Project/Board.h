@@ -34,7 +34,7 @@
  *
  *  @brief      CC2650SENSORTAG Board Specific header file.
  *
- *  NB! This is the board file for PCB versions 1.2 and 1.3
+ *  NB! This is the board file for PCB version 1.2
  *
  *  The CC2650 header file should be included in an application as follows:
  *  @code
@@ -67,7 +67,7 @@ extern PIN_Config BoardGpioInitTable[];
 
 /* Symbol by generic Board.c to include the correct PCB  specific Board.c */
 #define CC2650ST_0120
-  
+
 /* Identify as SensorTag */
 #define CC2650ST_7ID
 
@@ -88,6 +88,7 @@ extern PIN_Config BoardGpioInitTable[];
 /* Discrete outputs */
 #define Board_LED1                  IOID_10
 #define Board_LED2                  IOID_15
+#define Board_LED0                  Board_LED2
 #define Board_BUZZER                IOID_21
 #define Board_LED_ON                1
 #define Board_LED_OFF               0
@@ -98,6 +99,10 @@ extern PIN_Config BoardGpioInitTable[];
 #define Board_KEY_LEFT              IOID_0
 #define Board_KEY_RIGHT             IOID_4
 #define Board_RELAY                 IOID_3
+
+#define Board_BUTTON0               Board_KEY_LEFT
+#define Board_BUTTON1               Board_KEY_RIGHT
+#define Board_BUTTON2               Board_RELAY
 
 /* Sensor outputs */
 #define Board_MPU_INT               IOID_7
@@ -154,8 +159,8 @@ extern PIN_Config BoardGpioInitTable[];
 #define Board_AUDIO_CLK             IOID_11
 
 /* UART pins used by driver */
-#define Board_UART_TX               Board_DP5_UARTTX
 #define Board_UART_RX               Board_DP4_UARTRX
+#define Board_UART_TX               Board_DP5_UARTTX
 
 /** ============================================================================
  *  Instance identifiers

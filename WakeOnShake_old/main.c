@@ -26,14 +26,27 @@
 
 // Drivers for motion sensor
 #include "Board.h"
-#include "movementservice.h"
-#include "sensor_mpu9250.h"
-#include "sensor.h"
-#include "util.h"
+//#include "movementservice.h"
+#include "Drivers/sensor_mpu9250.h"
+#include "Drivers/sensor.h"
+//#include "Drivers/util.h"
 #include "string.h"
+
+// Application
+#include "Application/Movement.h"
+
+
+
+
+
+
 
 
 int main(void) {
 	
+	Movement_createTask();
+
+	//BIOS_start();
+
 	return 0;
 }
