@@ -83,6 +83,10 @@ static PIN_State pinState;
 
 #define FakeBlockingSlowWork()   CPUdelay(12e6)
 static void Movement_taskFxn(UArg arg0, UArg arg1);
+void blinkLed(void);
+void pinInterruptHandler(PIN_Handle handle, PIN_Id pinId);
+void motionInterrupt(void);
+
 
 
 
@@ -111,6 +115,21 @@ void Movement_init(void){
     if(!pinHandle) {
         System_abort("Error initializing board pins\n");
     }
+    // Test LEDS
+    PIN_setOutputValue(pinHandle, Board_LED1, 1);
+    PIN_setOutputValue(pinHandle, Board_LED2, 1);
+
+    if (sensorMpu9250Init()){
+      //SensorTagMov_reset();
+      sensorMpu9250RegisterCallback(motionInterrupt);
+    }
+
+
+    // Init process finished successfully
+	Task_sleep(1000 * (1000 / Clock_tickPeriod));
+	PIN_setOutputValue(pinHandle, Board_LED1, 0);
+	PIN_setOutputValue(pinHandle, Board_LED2, 0);
+
 
 }
 
@@ -120,11 +139,32 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 
 	while(1){
 
-		FakeBlockingSlowWork();
+		//FakeBlockingSlowWork();
 
-		Task_sleep(1000 * (1000 / Clock_tickPeriod));
+		//Task_sleep(1000 * (1000 / Clock_tickPeriod));
+
+		Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
+		blinkLed();
 
 	}
+}
+
+void pinInterruptHandler(PIN_Handle handle, PIN_Id pinId){
+	// Signal the semaphore (button has been pressed)
+	Semaphore_post(motionSem);
+}
+
+void motionInterrupt(void){
+	// Wake up the application thread
+	//mpuDataRdy = true;
+	//sensorReadScheduled = true;
+	Semaphore_post(motionSem);
+}
+
+void blinkLed(void){
+	PIN_setOutputValue(pinHandle, Board_LED1, 1);
+	Task_sleep(2000 * (1000 / Clock_tickPeriod));
+	PIN_setOutputValue(pinHandle, Board_LED1, 0);
 }
 
 
