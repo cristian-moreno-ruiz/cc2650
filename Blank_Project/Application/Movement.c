@@ -27,6 +27,8 @@
 #include "Drivers/sensor.h"
 //#include "Drivers/util.h"
 #include "string.h"
+#include "Drivers/bsp_i2c.h"
+
 
 
 
@@ -39,7 +41,7 @@
 
 // Task configuration
 #define MV_TASK_PRIORITY                      1
-#define MV_TASK_STACK_SIZE                    256
+#define MV_TASK_STACK_SIZE                    1024
 
 
 
@@ -71,6 +73,12 @@ PIN_Config pinTable[] = {
 	Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP,
     PIN_TERMINATE
 };
+
+// Wake on motion threshold
+#define WOM_THR                   10
+
+static uint8_t mpuIntStatus;
+
 
 // PIN handle and state
 static PIN_Handle pinHandle;
@@ -111,6 +119,8 @@ void Movement_createTask(void){
 
 void Movement_init(void){
 
+	System_flush();
+
     pinHandle = PIN_open(&pinState, pinTable);
     if(!pinHandle) {
         System_abort("Error initializing board pins\n");
@@ -119,9 +129,23 @@ void Movement_init(void){
     PIN_setOutputValue(pinHandle, Board_LED1, 1);
     PIN_setOutputValue(pinHandle, Board_LED2, 1);
 
+    bspI2cInit();
+
     if (sensorMpu9250Init()){
       //SensorTagMov_reset();
       sensorMpu9250RegisterCallback(motionInterrupt);
+      System_printf("Successful accelerometer Test");
+      System_flush();
+    } else{
+    	System_printf("Unsuccessful accelerometer Test");
+    	System_flush();
+    	return;
+    }
+
+
+    if (sensorMpu9250Reset())
+    {
+      sensorMpu9250WomEnable(WOM_THR);
     }
 
 
@@ -144,6 +168,7 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 		//Task_sleep(1000 * (1000 / Clock_tickPeriod));
 
 		Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
+		mpuIntStatus = sensorMpu9250IntStatus();
 		blinkLed();
 
 	}
