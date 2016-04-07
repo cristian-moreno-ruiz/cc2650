@@ -91,7 +91,8 @@ static PIN_State pinState;
 
 #define FakeBlockingSlowWork()   CPUdelay(12e6)
 static void Movement_taskFxn(UArg arg0, UArg arg1);
-void blinkLed(void);
+void blinkRedLed(void);
+void blinkGreenLed(void);
 void pinInterruptHandler(PIN_Handle handle, PIN_Id pinId);
 void motionInterrupt(void);
 
@@ -127,17 +128,19 @@ void Movement_init(void){
     }
     // Test LEDS
     PIN_setOutputValue(pinHandle, Board_LED1, 1);
-    PIN_setOutputValue(pinHandle, Board_LED2, 1);
+	Task_sleep(500 * (1000 / Clock_tickPeriod));
+
 
     bspI2cInit();
 
     if (sensorMpu9250Init()){
       //SensorTagMov_reset();
       sensorMpu9250RegisterCallback(motionInterrupt);
-      System_printf("Successful accelerometer Test");
+      PIN_setOutputValue(pinHandle, Board_LED2, 1);
+      System_printf("Successful accelerometer Test\n");
       System_flush();
     } else{
-    	System_printf("Unsuccessful accelerometer Test");
+    	System_printf("Unsuccessful accelerometer Test\n");
     	System_flush();
     	return;
     }
@@ -169,7 +172,15 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 
 		Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
 		mpuIntStatus = sensorMpu9250IntStatus();
-		blinkLed();
+		System_printf("Interrupt Status: %u \n", mpuIntStatus);
+		System_flush();
+		if(mpuIntStatus & MPU_MOVEMENT){
+			System_printf("Motion detected (Interrupt Status = 0x40)");
+			System_flush();
+			blinkRedLed();
+		} else{
+			blinkGreenLed();
+		}
 
 	}
 }
@@ -186,10 +197,16 @@ void motionInterrupt(void){
 	Semaphore_post(motionSem);
 }
 
-void blinkLed(void){
+void blinkRedLed(void){
 	PIN_setOutputValue(pinHandle, Board_LED1, 1);
-	Task_sleep(2000 * (1000 / Clock_tickPeriod));
+	Task_sleep(500 * (1000 / Clock_tickPeriod));
 	PIN_setOutputValue(pinHandle, Board_LED1, 0);
+}
+
+void blinkGreenLed(void){
+	PIN_setOutputValue(pinHandle, Board_LED2, 1);
+	Task_sleep(500 * (1000 / Clock_tickPeriod));
+	PIN_setOutputValue(pinHandle, Board_LED2, 0);
 }
 
 
