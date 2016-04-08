@@ -447,6 +447,73 @@ bool sensorMpu9250WomEnable(uint8_t threshold)
 }
 
 /*******************************************************************************
+* @fn          sensorMpu9250SwitchInterruptMode
+*
+* @brief       Switch from WOM interrupt to interrupt on data ready (and viceversa)
+*
+* @param       bool Mode (TRUE: WOM, FALSE: interrupt on data ready)
+* @param       threshold - wake-up trigger threshold (unit: 4 mg, max 1020mg) [only for WOM mode]
+*
+*
+* @return      Return TRUE if evth goes well
+*/
+
+bool sensorMpu9250SwitchInterruptMode(bool mode, uint8_t threshold){
+
+	ST_ASSERT(sensorMpu9250PowerIsOn());
+
+	//if (!SENSOR_SELECT())
+	//{
+		//return false;
+	//}
+
+	if(mode){
+		// Switch to WOM
+		sensorMpu9250WomEnable(threshold);
+	}else{
+		// Switch to data ready
+		/*val = 0x00;
+		ST_ASSERT(sensorWriteReg(INT_ENABLE, &val, 1));
+
+		  val = 0x00;
+		  ST_ASSERT(sensorWriteReg(ACCEL_INTEL_CTRL, &val, 1));
+*/
+		sensorMpu9250Reset();
+
+		if (!SENSOR_SELECT())
+			{
+				return false;
+			}
+
+		val = BIT_RAW_RDY_EN;
+		ST_ASSERT(sensorWriteReg(INT_ENABLE, &val, 1));
+
+		  // Make sure accelerometer is running
+		  val = 0x09;
+		  ST_ASSERT(sensorWriteReg(PWR_MGMT_1, &val, 1));
+
+		  // Enable accelerometer, disable gyro
+		  val = 0x07;
+		  ST_ASSERT(sensorWriteReg(PWR_MGMT_2, &val, 1));
+
+		  // Clear interrupt
+		  sensorReadReg(INT_STATUS,&val,1);
+
+		  SENSOR_DESELECT();
+
+		  mpuConfig = 0;
+
+		  // Enable pin for wake-on-motion interrupt
+		  PIN_setInterrupt(hMpuPin, PIN_ID(Board_MPU_INT)|PIN_IRQ_POSEDGE);
+			SENSOR_DESELECT();
+
+	}
+
+	return true;
+}
+
+
+/*******************************************************************************
 * @fn          sensorMpu9250IntStatus
 *
 * @brief       Check whether a data or wake on motion interrupt has occurred

@@ -163,6 +163,10 @@ void Movement_init(void){
 void Movement_taskFxn(UArg arg0, UArg arg1){
 
 	Movement_init();
+	uint8_t accData[6];
+	int16_t accel_x, accel_y, accel_z;
+	uint8_t range;
+	float accelx, accely, accelz;
 
 	while(1){
 
@@ -177,7 +181,41 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 		if(mpuIntStatus & MPU_MOVEMENT){
 			System_printf("Motion detected (Interrupt Status = 0x40)");
 			System_flush();
+
+
+			while(0){
+
+				sensorMpu9250Init();
+				sensorMpu9250Enable(MPU_AX_ACC);
+				sensorMpu9250AccRead((uint16_t*) &accData);
+				System_printf("Accel Raw: %u \n", accData);
+				System_flush();
+
+				range = sensorMpu9250AccReadRange();
+
+				System_printf("Accel Range: %u\n", range);
+
+				accel_x = (accData[0] << 8) + accData[1];
+				accel_y = (accData[2] << 8) + accData[3];
+				accel_z = (accData[4] << 8) + accData[5];
+
+				accelx = sensorMpu9250AccConvert(accel_x);
+				accely = sensorMpu9250AccConvert(accel_y);
+				accelz = sensorMpu9250AccConvert(accel_z);
+				System_printf("Accel data x: %1.2f\n", accelx);
+				System_printf("Accel data y: %1.2f\n", accely);
+				System_printf("Accel data z: %1.2f \n", accelz);
+				System_flush();
+
+				Task_sleep(5000 * (1000 / Clock_tickPeriod));
+
+			}
+			//if(){
+
+			//}
+
 			blinkRedLed();
+
 		} else{
 			blinkGreenLed();
 		}

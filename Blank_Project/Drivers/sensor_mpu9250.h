@@ -100,6 +100,7 @@ bool sensorMpu9250PowerIsOn(void);
 
 void sensorMpu9250Enable(uint16_t config);
 bool sensorMpu9250WomEnable(uint8_t threshold);
+bool sensorMpu9250SwitchInterruptMode(bool mode, uint8_t threshold);
 
 bool sensorMpu9250AccSetRange(uint8_t range);
 uint8_t sensorMpu9250AccReadRange(void);
