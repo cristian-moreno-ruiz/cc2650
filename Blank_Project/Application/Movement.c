@@ -181,35 +181,55 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 		if(mpuIntStatus & MPU_MOVEMENT){
 			System_printf("Motion detected (Interrupt Status = 0x40)");
 			System_flush();
+			//sensorMpu9250SwitchInterruptMode(FALSE,WOM_THR);
 
 
-			while(0){
+			/*while(1){
 
-				sensorMpu9250Init();
-				sensorMpu9250Enable(MPU_AX_ACC);
-				sensorMpu9250AccRead((uint16_t*) &accData);
-				System_printf("Accel Raw: %u \n", accData);
-				System_flush();
 
-				range = sensorMpu9250AccReadRange();
+				Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
+				mpuIntStatus = sensorMpu9250IntStatus();
+				if(mpuIntStatus & MPU_MOVEMENT){
+					System_printf("Motion interrupt, don't do anything");
+					System_flush();
+				} else{
 
-				System_printf("Accel Range: %u\n", range);
+					//sensorMpu9250Init();
+					//sensorMpu9250Enable(MPU_AX_ACC);
+					//sensorMpu9250PowerOn();
+					//sensorMpu9250Enable(MPU_AX_ACC);
+					sensorMpu9250AccRead((uint16_t*) &accData);
+					//System_printf("Accel Raw: %u \n", accData);
+					System_flush();
 
-				accel_x = (accData[0] << 8) + accData[1];
-				accel_y = (accData[2] << 8) + accData[3];
-				accel_z = (accData[4] << 8) + accData[5];
+					range = sensorMpu9250AccReadRange();
 
-				accelx = sensorMpu9250AccConvert(accel_x);
-				accely = sensorMpu9250AccConvert(accel_y);
-				accelz = sensorMpu9250AccConvert(accel_z);
-				System_printf("Accel data x: %1.2f\n", accelx);
-				System_printf("Accel data y: %1.2f\n", accely);
-				System_printf("Accel data z: %1.2f \n", accelz);
-				System_flush();
+					System_printf("Accelerometer Range: %u\n", range);
 
-				Task_sleep(5000 * (1000 / Clock_tickPeriod));
+					//accel_x = (accData[0] << 8) + accData[1];
+					//accel_y = (accData[2] << 8) + accData[3];
+					//accel_z = (accData[4] << 8) + accData[5];
 
-			}
+					//accel_x = (((int16_t)accData[1]) << 8) + accData[0];
+					//accel_y = (((int16_t)accData[3]) << 8) + accData[2];
+					//accel_z = (((int16_t)accData[5]) << 8) + accData[4];
+
+					accel_x = (((int16_t)accData[0]) << 8) | accData[1];
+					accel_y = (((int16_t)accData[2]) << 8) | accData[3];
+					accel_z = (((int16_t)accData[4]) << 8) | accData[5];
+
+					accelx = sensorMpu9250AccConvert(accel_x);
+					accely = sensorMpu9250AccConvert(accel_y);
+					accelz = sensorMpu9250AccConvert(accel_z);
+					System_printf("Accel data x: %1.2f\n", accelx);
+					System_printf("Accel data y: %1.2f\n", accely);
+					System_printf("Accel data z: %1.2f \n", accelz);
+					System_flush();
+
+					//Task_sleep(5000 * (1000 / Clock_tickPeriod));
+				}
+
+			}*/
 			//if(){
 
 			//}
