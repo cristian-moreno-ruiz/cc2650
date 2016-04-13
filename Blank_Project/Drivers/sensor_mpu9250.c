@@ -478,14 +478,14 @@ bool sensorMpu9250SwitchInterruptMode(bool mode, uint8_t threshold){
 		  val = 0x00;
 		  ST_ASSERT(sensorWriteReg(ACCEL_INTEL_CTRL, &val, 1));
 */
-		sensorMpu9250Reset();
+		//sensorMpu9250Reset();
 
 		if (!SENSOR_SELECT())
 			{
 				return false;
 			}
 
-		val = BIT_RAW_RDY_EN;
+		val = BIT_RAW_RDY_EN + BIT_WOM_EN;
 		ST_ASSERT(sensorWriteReg(INT_ENABLE, &val, 1));
 
 		  // Make sure accelerometer is running
@@ -505,7 +505,7 @@ bool sensorMpu9250SwitchInterruptMode(bool mode, uint8_t threshold){
 
 		  // Enable pin for wake-on-motion interrupt
 		  PIN_setInterrupt(hMpuPin, PIN_ID(Board_MPU_INT)|PIN_IRQ_POSEDGE);
-			SENSOR_DESELECT();
+		//	SENSOR_DESELECT();
 
 	}
 
