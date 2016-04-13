@@ -173,20 +173,16 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 
 	while(1){
 
-		//FakeBlockingSlowWork();
-
-		//Task_sleep(1000 * (1000 / Clock_tickPeriod));
-
 		Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
 		mpuIntStatus = sensorMpu9250IntStatus();
 		System_printf("Interrupt Status: %u \n", mpuIntStatus);
+		System_printf("WOM Status: %u \n", wom);
 		System_flush();
 		if((mpuIntStatus & MPU_MOVEMENT) && wom){
 			inactive = 0;
-			System_printf("Motion detected (Interrupt Status = 0x40)");
-			System_flush();
 			sensorMpu9250SwitchInterruptMode(FALSE,WOM_THR);
 
+			PIN_setOutputValue(pinHandle, Board_LED2, 1);
 			blinkRedLed();
 
 		} else if(wom){
@@ -219,10 +215,12 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 			if (inactive == 5){
 				sensorMpu9250SwitchInterruptMode(TRUE,WOM_THR);
 				wom = FALSE;
+				PIN_setOutputValue(pinHandle, Board_LED2, 0);
 			}
 
 			inactive++;
-			blinkGreenLed();
+			Task_sleep(500 * (1000 / Clock_tickPeriod));
+
 
 
 		} else{
