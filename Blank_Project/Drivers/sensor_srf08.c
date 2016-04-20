@@ -90,7 +90,6 @@ bool sensorSrf08Init(void){
 
 
 
-
 bool sensorSrf08SetRange(uint8_t maxRange){
 	if (!SENSOR_SELECT()){
 		return false;
