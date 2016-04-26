@@ -50,7 +50,6 @@ int main(void) {
 	Movement_createTask();
 	//Distance_createTask();
 
-
 	BIOS_start();
 
 	return 0;
