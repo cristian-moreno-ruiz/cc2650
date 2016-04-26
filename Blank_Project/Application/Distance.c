@@ -132,11 +132,11 @@ void Distance_init(void){
 
     bool success = sensorSrf08Init();
 
-    if(success){
+    if(!success){
     	while(1){
     		sensorSrf08Init();
-    		blinkGreenLedDistance();
-    		blinkRedLedDistance();
+    		//blinkGreenLedDistance();
+    		//blinkRedLedDistance();
     	}
     }
 

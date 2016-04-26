@@ -84,7 +84,7 @@ bool sensorSrf08Init(void){
 	SENSOR_DESELECT();
 
 
-	return true;
+	return success;
 }
 
 
