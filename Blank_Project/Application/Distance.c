@@ -41,7 +41,7 @@
 
 // Task configuration
 #define DST_TASK_PRIORITY                      1
-#define DST_TASK_STACK_SIZE                    1024
+#define DST_TASK_STACK_SIZE                    2048
 
 
 
@@ -132,9 +132,14 @@ void Distance_init(void){
 
     bool success = sensorSrf08Init();
 
+    uint8_t srf08Data[34];
+
     if(!success){
+    	bool srf08, accel;
     	while(1){
-    		sensorSrf08Init();
+    		srf08 = sensorSrf08Init();
+    		accel = sensorMpu9250Init();
+    		sensorSrf08Scan((uint16_t*) &srf08Data);
     		//blinkGreenLedDistance();
     		//blinkRedLedDistance();
     	}

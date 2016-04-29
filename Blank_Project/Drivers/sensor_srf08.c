@@ -7,7 +7,7 @@
 */
 
 #include "Board.h"
-#include "sensor_mpu9250.h"
+#include "sensor_srf08.h"
 #include "sensor_opt3001.h" // For reset of I2C bus
 #include "sensor.h"
 #include "bsp_i2c.h"
@@ -19,7 +19,7 @@
 * ------------------------------------------------------------------------------
 */
 // Sensor I2C address
-#define SENSOR_I2C_ADDRESS				0xE0
+#define SENSOR_I2C_ADDRESS				0x70
 
 
 // Write Registers
@@ -37,11 +37,30 @@
 // Commands
 #define RANGE_CM						0x51
 
+// Gain
+#define MAX_GAIN						0x25
+
+// Range
+#define MAX_RANGE_6M					0x8C
 
 // Sensor Selection/Deselection
 
 #define SENSOR_SELECT()               bspI2cSelect(BSP_I2C_INTERFACE_1,SENSOR_I2C_ADDRESS)
 #define SENSOR_DESELECT()             bspI2cDeselect()
+
+
+/* -----------------------------------------------------------------------------
+*                           Accelerometer I2C test
+* ------------------------------------------------------------------------------
+*/
+
+#define SENSOR_I2C_ACC_ADDRESS				0x68
+#define PWR_MGMT_1                    0x6B // R/W
+
+#define SENSOR_ACC_SELECT()               bspI2cSelect(BSP_I2C_INTERFACE_1,SENSOR_I2C_ACC_ADDRESS)
+#define SENSOR_ACC_DESELECT()             bspI2cDeselect()
+
+
 
 /* -----------------------------------------------------------------------------
 *                           Typedefs
@@ -59,6 +78,9 @@
 */
 
 void sensorSrf08PowerOn(void);
+bool sensorSrf08SetRange(uint8_t maxRange);
+bool sensorSrf08SetMaxGain(uint8_t maxGain);
+
 
 /* -----------------------------------------------------------------------------
 *                           Local Variables
@@ -83,8 +105,27 @@ bool sensorSrf08Init(void){
 	bool success = sensorReadReg(SW_REVISION, &data, 1);
 	SENSOR_DESELECT();
 
+	bool success2 = sensorSrf08SetRange(MAX_RANGE_6M);
+	bool success3 = sensorSrf08SetMaxGain(MAX_GAIN);
 
-	return success;
+	if (!SENSOR_SELECT()){
+		return false;
+	}
+	// Set Maximum Range
+	uint8_t val = RANGE_CM;
+	sensorWriteReg(COMMAND_REGISTER, &val, 1);
+	SENSOR_DESELECT();
+
+
+	if (!SENSOR_ACC_SELECT()){
+		return false;
+	}
+	  // Device reset
+	  val = 0x80;
+	  bool accel = sensorWriteReg(PWR_MGMT_1, &val, 1);
+	SENSOR_ACC_DESELECT();
+
+	return success + success2 + success3;
 }
 
 
