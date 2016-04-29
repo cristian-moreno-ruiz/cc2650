@@ -28,7 +28,8 @@ extern "C" {
  */
 
 bool sensorSrf08Init(void);
-uint8_t sensorSrf08Scan(uint16_t *data);
+bool sensorSrf08Scan(uint16_t *data);
+int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm);
 
 /*******************************************************************************
 */

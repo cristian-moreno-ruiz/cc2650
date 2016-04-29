@@ -133,13 +133,20 @@ void Distance_init(void){
     bool success = sensorSrf08Init();
 
     uint8_t srf08Data[34];
+    uint16_t cm[17];
 
-    if(!success){
+    if(success){
     	bool srf08, accel;
     	while(1){
     		srf08 = sensorSrf08Init();
     		accel = sensorMpu9250Init();
     		sensorSrf08Scan((uint16_t*) &srf08Data);
+    		sensorSrf08ConvertCm((uint8_t*) &srf08Data, (uint16_t*) &cm);
+
+    		System_printf("First Echo found: %u  cm\n", cm[0]);
+    		System_flush();
+
+    		srf08 = 0;
     		//blinkGreenLedDistance();
     		//blinkRedLedDistance();
     	}

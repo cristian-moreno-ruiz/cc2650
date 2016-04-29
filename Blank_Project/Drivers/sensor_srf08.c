@@ -45,7 +45,7 @@
 
 // Sensor Selection/Deselection
 
-#define SENSOR_SELECT()               bspI2cSelect(BSP_I2C_INTERFACE_1,SENSOR_I2C_ADDRESS)
+#define SENSOR_SELECT()               bspI2cSelect(BSP_I2C_INTERFACE_0,SENSOR_I2C_ADDRESS)
 #define SENSOR_DESELECT()             bspI2cDeselect()
 
 
@@ -157,8 +157,7 @@ bool sensorSrf08SetMaxGain(uint8_t maxGain){
 	return success;
 }
 
-uint8_t sensorSrf08Scan(uint16_t *data){
-	uint8_t nEchoes = 0;
+bool sensorSrf08Scan(uint16_t *data){
 
 	// Send "Range Start" command
 	if (!SENSOR_SELECT()){
@@ -183,6 +182,15 @@ uint8_t sensorSrf08Scan(uint16_t *data){
 	if(!success) return 0;
 
 
+	return success;
+}
+
+int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm){
+	int8_t i, nEchoes = 0;
+	for(i = 0; i < DATA_SIZE; i++){
+		cm[i] = (data[2*i] << 8) + data[2*i+1];
+		if(cm[i] > 0) nEchoes++;
+	}
 	return nEchoes;
 }
 
