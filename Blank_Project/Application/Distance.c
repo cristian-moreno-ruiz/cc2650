@@ -125,49 +125,38 @@ void Distance_init(void){
     PIN_setOutputValue(pinHandle, Board_LED1, 1);
 	Task_sleep(500 * (1000 / Clock_tickPeriod));
 
-
     bspI2cInit();
 
     // INIT SRF08
-
-    bool success = sensorSrf08Init();
-
-    uint8_t srf08Data[34];
-    uint16_t cm[17];
-
-    if(success){
-    	bool srf08, accel;
-    	while(1){
-    		srf08 = sensorSrf08Init();
-    		accel = sensorMpu9250Init();
-    		sensorSrf08Scan((uint16_t*) &srf08Data);
-    		sensorSrf08ConvertCm((uint8_t*) &srf08Data, (uint16_t*) &cm);
-
-    		System_printf("First Echo found: %u  cm\n", cm[0]);
-    		System_flush();
-
-    		srf08 = 0;
-    		//blinkGreenLedDistance();
-    		//blinkRedLedDistance();
-    	}
+    if(!sensorSrf08Init()) {
+    	System_abort("Error initializing SRF08\n");
     }
 
-
+    PIN_setOutputValue(pinHandle, Board_LED2, 1);
 
     // Init process finished successfully
 	Task_sleep(1000 * (1000 / Clock_tickPeriod));
 	PIN_setOutputValue(pinHandle, Board_LED1, 0);
 	PIN_setOutputValue(pinHandle, Board_LED2, 0);
 
-
 }
 
 void Distance_taskFxn(UArg arg0, UArg arg1){
 
-	while(1){
-		Distance_init();
-	}
+	Distance_init();
 
+	uint8_t srf08Data[34];
+	uint16_t cm[17];
+
+	while(1){
+
+    	sensorSrf08Scan((uint16_t*) &srf08Data);
+    	sensorSrf08ConvertCm((uint8_t*) &srf08Data, (uint16_t*) &cm);
+
+    	System_printf("First Echo found: %u  cm\n", cm[0]);
+    	System_flush();
+
+    }
 }
 
 

@@ -31,6 +31,10 @@ bool sensorSrf08Init(void);
 bool sensorSrf08Scan(uint16_t *data);
 int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm);
 
+bool sensorSrf08InitMultiple(void);
+bool sensorSrf08ScanMultiple(uint16_t *data_1, uint16_t *data_2, uint16_t *data_3);
+
+
 /*******************************************************************************
 */
 
