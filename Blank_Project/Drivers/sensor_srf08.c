@@ -20,9 +20,13 @@
 */
 // Sensor I2C address
 #define SENSOR_I2C_ADDRESS_1			0x70
-#define SENSOR_I2C_ADDRESS_2			0x70
-#define SENSOR_I2C_ADDRESS_3			0x70
+#define SENSOR_I2C_ADDRESS_2			0x71
+#define SENSOR_I2C_ADDRESS_3			0x72
 
+// Change Address Sequence
+#define CHANGE_SEQ_1					0xA0
+#define CHANGE_SEQ_2					0xAA
+#define CHANGE_SEQ_3					0xA5
 
 // Write Registers
 #define GAIN_REGISTER 					0x01
@@ -81,7 +85,6 @@ bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain);
 * ------------------------------------------------------------------------------
 */
 
-static uint8_t range;
 
 /* -----------------------------------------------------------------------------
 *                            Functions
@@ -94,6 +97,32 @@ static uint8_t range;
 * ------------------------------------------------------------------------------
 */
 
+bool sensorSrf08ChangeAddress(uint8_t oldAddress, uint8_t newAddress){
+
+	uint8_t val;
+
+	// Cast 7-bit address to 8-bit address
+	newAddress = (newAddress << 1);
+
+	// Write Change sequence to old address
+	if(!bspI2cSelect(BSP_I2C_INTERFACE_0, oldAddress)) return false;
+	val = CHANGE_SEQ_1;
+	sensorWriteReg(COMMAND_REGISTER, &val, 1);
+
+	val = CHANGE_SEQ_2;
+	sensorWriteReg(COMMAND_REGISTER, &val, 1);
+
+	val = CHANGE_SEQ_3;
+	sensorWriteReg(COMMAND_REGISTER, &val, 1);
+
+	val = newAddress;
+	bool success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
+
+	bspI2cDeselect();
+	if(!success) return false;
+
+	return true;
+}
 
 
 bool sensorSrf08Init(void){
@@ -103,13 +132,13 @@ bool sensorSrf08Init(void){
 	}
 	uint8_t data;
 
-	bool revision = sensorReadReg(SW_REVISION, &data, 1);
+	bool success = sensorReadReg(SW_REVISION, &data, 1);
 	SENSOR_DESELECT();
 
-	bool range = sensorSrf08SetRange(MAX_RANGE_6M);
-	bool gain = sensorSrf08SetMaxGain(MAX_GAIN);
+	success *= sensorSrf08SetRange(MAX_RANGE_6M);
+	success *= sensorSrf08SetMaxGain(MAX_GAIN);
 
-	return revision + range + gain;
+	return success;
 }
 
 
@@ -122,7 +151,6 @@ bool sensorSrf08SetRange(uint8_t maxRange){
 	SENSOR_DESELECT();
 
 	//Store range in variable
-	range = maxRange;
 
 	return success;
 }
@@ -187,18 +215,32 @@ int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm){
 
 bool sensorSrf08InitMultiple(void){
 
-	if (!SENSOR_SELECT_1()){
-		return false;
-	}
+	// SENSOR 1
+	if (!SENSOR_SELECT_1()) return false;
 	uint8_t data;
-
-	bool revision = sensorReadReg(SW_REVISION, &data, 1);
+	bool success = sensorReadReg(SW_REVISION, &data, 1);
 	SENSOR_DESELECT();
 
-	bool range = sensorSrf08SetRangeMultiple(MAX_RANGE_6M);
-	bool gain = sensorSrf08SetMaxGainMultiple(MAX_GAIN);
+	success *= sensorSrf08SetRangeMultiple(MAX_RANGE_6M);
+	success *= sensorSrf08SetMaxGainMultiple(MAX_GAIN);
 
-	return revision + range + gain;
+	// SENSOR 2
+	if (!SENSOR_SELECT_2()) return false;
+	success *= sensorReadReg(SW_REVISION, &data, 1);
+	SENSOR_DESELECT();
+
+	success *= sensorSrf08SetRangeMultiple(MAX_RANGE_6M);
+	success *= sensorSrf08SetMaxGainMultiple(MAX_GAIN);
+
+	// SENSOR 3
+	if (!SENSOR_SELECT_3()) return false;
+	success *= sensorReadReg(SW_REVISION, &data, 1);
+	SENSOR_DESELECT();
+
+	success *= sensorSrf08SetRangeMultiple(MAX_RANGE_6M);
+	success *= sensorSrf08SetMaxGainMultiple(MAX_GAIN);
+
+	return success;
 }
 
 
@@ -208,7 +250,7 @@ bool sensorSrf08SetRangeMultiple(uint8_t maxRange){
 		return false;
 	}
 	// Set Maximum Range
-	bool success_1 = sensorWriteReg(RANGE_REGISTER, &maxRange, 1);
+	bool success = sensorWriteReg(RANGE_REGISTER, &maxRange, 1);
 	SENSOR_DESELECT();
 
 	// SENSOR 2
@@ -216,7 +258,7 @@ bool sensorSrf08SetRangeMultiple(uint8_t maxRange){
 		return false;
 	}
 	// Set Maximum Range
-	bool success_2 = sensorWriteReg(RANGE_REGISTER, &maxRange, 1);
+	success *= sensorWriteReg(RANGE_REGISTER, &maxRange, 1);
 	SENSOR_DESELECT();
 
 	// SENSOR 3
@@ -224,10 +266,10 @@ bool sensorSrf08SetRangeMultiple(uint8_t maxRange){
 		return false;
 	}
 	// Set Maximum Range
-	bool success_3 = sensorWriteReg(RANGE_REGISTER, &maxRange, 1);
+	success *= sensorWriteReg(RANGE_REGISTER, &maxRange, 1);
 	SENSOR_DESELECT();
 
-	return success_1 + success_2 + success_3;
+	return success;
 }
 
 
@@ -237,7 +279,7 @@ bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain){
 		return false;
 	}
 	// Set Maximum Analogue Gain
-	bool success_1 = sensorWriteReg(GAIN_REGISTER, &maxGain, 1);
+	bool success = sensorWriteReg(GAIN_REGISTER, &maxGain, 1);
 	SENSOR_DESELECT();
 
 	// SENSOR 2
@@ -245,7 +287,7 @@ bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain){
 		return false;
 	}
 	// Set Maximum Analogue Gain
-	bool success_2 = sensorWriteReg(GAIN_REGISTER, &maxGain, 1);
+	success *= sensorWriteReg(GAIN_REGISTER, &maxGain, 1);
 	SENSOR_DESELECT();
 
 	// SENSOR 3
@@ -253,10 +295,10 @@ bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain){
 		return false;
 	}
 	// Set Maximum Analogue Gain
-	bool success_3 = sensorWriteReg(GAIN_REGISTER, &maxGain, 1);
+	success *= sensorWriteReg(GAIN_REGISTER, &maxGain, 1);
 	SENSOR_DESELECT();
 
-	return success_1 + success_2 + success_3;
+	return success;
 }
 
 
@@ -266,44 +308,41 @@ bool sensorSrf08ScanMultiple(uint16_t *data_1, uint16_t *data_2, uint16_t *data_
 	uint8_t val = RANGE_CM;
 
 	// Send "Range Start" command to SENSOR 1
-	if (!SENSOR_SELECT_1()) return 0;
+	if (!SENSOR_SELECT_1()) return false;
 	success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
 	SENSOR_DESELECT();
-	if(!success) return false;
 
 	// Send "Range Start" command to SENSOR 2
-	if (!SENSOR_SELECT_2()) return 0;
-	success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
+	if (!SENSOR_SELECT_2()) return false;
+	success *= sensorWriteReg(COMMAND_REGISTER, &val, 1);
 	SENSOR_DESELECT();
-	if(!success) return false;
 
 	// Send "Range Start" command to SENSOR 3
-	if (!SENSOR_SELECT_3()) return 0;
-	success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
+	if (!SENSOR_SELECT_3()) return false;
+	success *= sensorWriteReg(COMMAND_REGISTER, &val, 1);
 	SENSOR_DESELECT();
-	if(!success) return false;
 
 	// Wait until Scan is finished (70 ms)
 	Task_sleep(70 * (1000 / Clock_tickPeriod));
 
 	// Read Echoes received in SENSOR 1
-	if (!SENSOR_SELECT_1()) return 0;
-	success = sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_1, DATA_SIZE);
+	if (!SENSOR_SELECT_1()) return false;
+	success *= sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_1, DATA_SIZE);
 	SENSOR_DESELECT();
-	if(!success) return false;
 
 	// Read Echoes received in SENSOR 2
-	if (!SENSOR_SELECT_1()) return 0;
-	success = sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_2, DATA_SIZE);
+	if (!SENSOR_SELECT_2()) return false;
+	success *= sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_2, DATA_SIZE);
 	SENSOR_DESELECT();
-	if(!success) return false;
 
 	// Read Echoes received in SENSOR 3
-	if (!SENSOR_SELECT_1()) return 0;
-	success = sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_3, DATA_SIZE);
+	if (!SENSOR_SELECT_3()) return false;
+	success *= sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_3, DATA_SIZE);
 	SENSOR_DESELECT();
-	if(!success) return false;
 
-	return true;
+	return success;
 }
+
+
+
 

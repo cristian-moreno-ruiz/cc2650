@@ -74,7 +74,7 @@ PIN_Config pinTableDistance[] = {
     PIN_TERMINATE
 };
 
-
+bool multipleMode;
 
 
 // PIN handle and state
@@ -127,10 +127,21 @@ void Distance_init(void){
 
     bspI2cInit();
 
-    // INIT SRF08
-    if(!sensorSrf08Init()) {
+    // Uncomment to change the address (may be done only once, and with only a sensor connected)
+    //sensorSrf08ChangeAddress(0x72, 0x71);
+
+    // INIT SRF08s
+    if(sensorSrf08InitMultiple()){
+    	System_printf("Selected mode: Multiple sensors (3) \n");
+    	multipleMode = true;
+    }else if(sensorSrf08Init()){
+    	System_printf("Selected mode: Single sensor \n");
+    	multipleMode = false;
+    }else{
     	System_abort("Error initializing SRF08\n");
     }
+	System_flush();
+
 
     PIN_setOutputValue(pinHandle, Board_LED2, 1);
 
@@ -145,18 +156,33 @@ void Distance_taskFxn(UArg arg0, UArg arg1){
 
 	Distance_init();
 
-	uint8_t srf08Data[34];
-	uint16_t cm[17];
+	if(multipleMode){
+		uint8_t srf08Data_1[34], srf08Data_2[34], srf08Data_3[34];
+		uint16_t cm_1[17], cm_2[17], cm_3[17];
 
-	while(1){
+		while(1){
+	    	sensorSrf08ScanMultiple((uint16_t*) &srf08Data_1, (uint16_t*) &srf08Data_2, (uint16_t*) &srf08Data_3);
+	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data_1, (uint16_t*) &cm_1);
+	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data_2, (uint16_t*) &cm_2);
+	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data_3, (uint16_t*) &cm_3);
 
-    	sensorSrf08Scan((uint16_t*) &srf08Data);
-    	sensorSrf08ConvertCm((uint8_t*) &srf08Data, (uint16_t*) &cm);
+	    	System_printf("[Sensor 1] First Echo found: %u  cm\n", cm_1[0]);
+	    	System_printf("[Sensor 2] First Echo found: %u  cm\n", cm_2[0]);
+	    	System_printf("[Sensor 3] First Echo found: %u  cm\n", cm_3[0]);
+	    	System_flush();
+		}
+	}else{
+		uint8_t srf08Data[34];
+		uint16_t cm[17];
 
-    	System_printf("First Echo found: %u  cm\n", cm[0]);
-    	System_flush();
+		while(1){
+	    	sensorSrf08Scan((uint16_t*) &srf08Data);
+	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data, (uint16_t*) &cm);
 
-    }
+	    	System_printf("First Echo found: %u  cm\n", cm[0]);
+	    	System_flush();
+		}
+	}
 }
 
 

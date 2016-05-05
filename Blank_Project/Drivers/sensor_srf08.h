@@ -26,7 +26,7 @@ extern "C" {
  *                                          Functions
  * -----------------------------------------------------------------------------
  */
-
+bool sensorSrf08ChangeAddress(uint8_t oldAddress, uint8_t newAddress);
 bool sensorSrf08Init(void);
 bool sensorSrf08Scan(uint16_t *data);
 int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm);
