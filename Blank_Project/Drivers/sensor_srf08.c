@@ -41,13 +41,17 @@
 #define FIRST_ECHO_H					0x02
 
 // Commands
-#define RANGE_CM						0x51
+#define SCAN_CM							0x51
 
 // Gain
 #define MAX_GAIN						0x25
 
 // Range
 #define MAX_RANGE_6M					0x8C
+
+// SRF02 Commands
+#define TRANSMIT_BURST					0x5C
+#define FAKE_SCAN_CM					0x57
 
 // Sensor Selection/Deselection
 
@@ -174,7 +178,7 @@ bool sensorSrf08Scan(uint16_t *data){
 	if (!SENSOR_SELECT_1()){
 		return 0;
 	}
-	uint8_t val = RANGE_CM;
+	uint8_t val = SCAN_CM;
 	bool success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
 	SENSOR_DESELECT();
 
@@ -305,17 +309,23 @@ bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain){
 bool sensorSrf08ScanMultiple(uint16_t *data_1, uint16_t *data_2, uint16_t *data_3){
 
 	bool success;
-	uint8_t val = RANGE_CM;
+	uint8_t val = SCAN_CM;
 
 	// Send "Range Start" command to SENSOR 1
 	if (!SENSOR_SELECT_1()) return false;
 	success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
 	SENSOR_DESELECT();
 
+	// Wait until Scan is finished (70 ms)
+	Task_sleep(70 * (1000 / Clock_tickPeriod));
+
 	// Send "Range Start" command to SENSOR 2
 	if (!SENSOR_SELECT_2()) return false;
 	success *= sensorWriteReg(COMMAND_REGISTER, &val, 1);
 	SENSOR_DESELECT();
+
+	// Wait until Scan is finished (70 ms)
+	Task_sleep(70 * (1000 / Clock_tickPeriod));
 
 	// Send "Range Start" command to SENSOR 3
 	if (!SENSOR_SELECT_3()) return false;
@@ -344,5 +354,48 @@ bool sensorSrf08ScanMultiple(uint16_t *data_1, uint16_t *data_2, uint16_t *data_
 }
 
 
+bool sensorSrf02ScanDistributed(uint16_t *data_1, uint16_t *data_2, uint16_t *data_3){
+
+	bool success;
+	uint8_t val;
+
+	// Transmit burst with SENSOR 1
+	val = SCAN_CM;
+	if (!SENSOR_SELECT_1()) return false;
+	success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
+	SENSOR_DESELECT();
+
+	// Fake Scan SENSOR 2
+	val = FAKE_SCAN_CM;
+	if (!SENSOR_SELECT_2()) return false;
+	success *= sensorWriteReg(COMMAND_REGISTER, &val, 1);
+	SENSOR_DESELECT();
+
+	// Fake Scan SENSOR 3
+	if (!SENSOR_SELECT_3()) return false;
+	success *= sensorWriteReg(COMMAND_REGISTER, &val, 1);
+	SENSOR_DESELECT();
+
+	// Wait until Scan is finished (70 ms)
+	Task_sleep(70 * (1000 / Clock_tickPeriod));
+
+	// Read Echoes received in SENSOR 1
+	if (!SENSOR_SELECT_1()) return false;
+	success *= sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_1, DATA_SIZE);
+	SENSOR_DESELECT();
+
+	// Read Echoes received in SENSOR 2
+	if (!SENSOR_SELECT_2()) return false;
+	success *= sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_2, DATA_SIZE);
+	SENSOR_DESELECT();
+
+	// Read Echoes received in SENSOR 3
+	if (!SENSOR_SELECT_3()) return false;
+	success *= sensorReadReg(FIRST_ECHO_H, (uint8_t*)data_3, DATA_SIZE);
+	SENSOR_DESELECT();
+
+	return success;
+
+}
 
 

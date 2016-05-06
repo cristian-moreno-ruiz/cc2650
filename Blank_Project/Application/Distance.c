@@ -155,22 +155,38 @@ void Distance_init(void){
 void Distance_taskFxn(UArg arg0, UArg arg1){
 
 	Distance_init();
+	bool distributed = false;
 
 	if(multipleMode){
 		uint8_t srf08Data_1[34], srf08Data_2[34], srf08Data_3[34];
 		uint16_t cm_1[17], cm_2[17], cm_3[17];
 
 		while(1){
-	    	sensorSrf08ScanMultiple((uint16_t*) &srf08Data_1, (uint16_t*) &srf08Data_2, (uint16_t*) &srf08Data_3);
-	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data_1, (uint16_t*) &cm_1);
-	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data_2, (uint16_t*) &cm_2);
-	    	sensorSrf08ConvertCm((uint8_t*) &srf08Data_3, (uint16_t*) &cm_3);
+			if(distributed){
+				sensorSrf02ScanDistributed((uint16_t*) &srf08Data_1, (uint16_t*) &srf08Data_2, (uint16_t*) &srf08Data_3);
+				sensorSrf08ConvertCm((uint8_t*) &srf08Data_1, (uint16_t*) &cm_1);
+				sensorSrf08ConvertCm((uint8_t*) &srf08Data_2, (uint16_t*) &cm_2);
+				sensorSrf08ConvertCm((uint8_t*) &srf08Data_3, (uint16_t*) &cm_3);
 
-	    	System_printf("[Sensor 1] First Echo found: %u  cm\n", cm_1[0]);
-	    	System_printf("[Sensor 2] First Echo found: %u  cm\n", cm_2[0]);
-	    	System_printf("[Sensor 3] First Echo found: %u  cm\n", cm_3[0]);
-	    	System_flush();
+				System_printf("[Sensor 1] Pulse sent (Distributed Mode)\n");
+				System_printf("[Sensor 1] First Echo found: %u  cm\n", cm_1[0]);
+				System_printf("[Sensor 2] First Echo found: %u  cm\n", cm_2[0]);
+				System_printf("[Sensor 3] First Echo found: %u  cm\n\n", cm_3[0]);
+				System_flush();
+			}else{
+				sensorSrf08ScanMultiple((uint16_t*) &srf08Data_1, (uint16_t*) &srf08Data_2, (uint16_t*) &srf08Data_3);
+				sensorSrf08ConvertCm((uint8_t*) &srf08Data_1, (uint16_t*) &cm_1);
+				sensorSrf08ConvertCm((uint8_t*) &srf08Data_2, (uint16_t*) &cm_2);
+				sensorSrf08ConvertCm((uint8_t*) &srf08Data_3, (uint16_t*) &cm_3);
+
+				System_printf("[Sensor 1] First Echo found: %u  cm\n", cm_1[0]);
+				System_printf("[Sensor 2] First Echo found: %u  cm\n", cm_2[0]);
+				System_printf("[Sensor 3] First Echo found: %u  cm\n\n", cm_3[0]);
+				System_flush();
+
+			}
 		}
+
 	}else{
 		uint8_t srf08Data[34];
 		uint16_t cm[17];
