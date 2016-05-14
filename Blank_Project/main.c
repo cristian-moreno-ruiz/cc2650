@@ -35,6 +35,7 @@
 // Application
 #include "Application/Movement.h"
 #include "Application/Distance.h"
+#include "Application/Flame.h"
 
 
 
@@ -47,8 +48,9 @@ int main(void) {
 
 	PIN_init(BoardGpioInitTable);
 	
-	Movement_createTask();
+	//Movement_createTask();
 	//Distance_createTask();
+	Flame_createTask();
 
 	BIOS_start();
 
