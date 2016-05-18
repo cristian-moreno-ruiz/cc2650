@@ -78,6 +78,7 @@ PIN_Config pinTableFlame[] = {
     Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP,
 	Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP,
 	ALS_OUTPUT   | PIN_INPUT_DIS | PIN_GPIO_OUTPUT_DIS,
+	Board_DP1	 | PIN_INPUT_EN,
     PIN_TERMINATE
 };
 
@@ -92,6 +93,7 @@ static PIN_State pinState;
  */
 
 static void Flame_taskFxn(UArg arg0, UArg arg1);
+void flameInterruptHandler(PIN_Handle handle, PIN_Id pinId);
 
 
 
@@ -132,6 +134,10 @@ void Flame_init(void){
 	AUXADCSelectInput(ADC_COMPB_IN_AUXIO7);
 	AUXADCEnableSync(AUXADC_REF_FIXED, AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
 
+	// Set interrupt in PIN Board_DP1
+    PIN_registerIntCb(pinHandle, flameInterruptHandler);
+    PIN_setInterrupt(pinHandle, Board_DP1 | PIN_IRQ_POSEDGE);
+
 	// Disallow STANDBY mode while using the ADC.
 	// Power_setConstraint(Power_SB_DISALLOW);
 
@@ -153,6 +159,10 @@ void Flame_taskFxn(UArg arg0, UArg arg1){
 	//uint8_t currentSample = 0;
 
 	while(1){
+
+		// Wait until flame is detected
+		Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
+
 			//Sleep 100ms in IDLE mode
 			Task_sleep(100 * 1000 / Clock_tickPeriod);
 
@@ -173,7 +183,9 @@ void Flame_taskFxn(UArg arg0, UArg arg1){
 	}
 }
 
-
+void flameInterruptHandler(PIN_Handle handle, PIN_Id pinId){
+	Semaphore_post(flameSem);
+}
 
 
 
