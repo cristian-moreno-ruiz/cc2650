@@ -40,7 +40,7 @@
 
 
 // Task configuration
-#define MV_TASK_PRIORITY                      1
+#define MV_TASK_PRIORITY                      2
 #define MV_TASK_STACK_SIZE                    1024
 
 
@@ -131,7 +131,7 @@ void Movement_init(void){
 	Task_sleep(500 * (1000 / Clock_tickPeriod));
 
 
-    bspI2cInit();
+    //bspI2cInit();
 
     if (sensorMpu9250Init()){
       //SensorTagMov_reset();
