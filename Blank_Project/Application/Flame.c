@@ -25,6 +25,11 @@
 /* Driverlib CPU functions, used here for CPUdelay*/
 #include <driverlib/cpu.h>
 
+#include "Drivers/sensor_tmp007.h"
+#include "Drivers/sensor_opt3001.h"
+#include "Drivers/sensor.h"
+#include "Drivers/bsp_i2c.h"
+
 // Drivers for motion sensor
 //#include "Board.h"
 //#include "movementservice.h"
@@ -121,6 +126,9 @@ void Flame_init(void){
 
 	System_flush();
 
+	// Standalone TAsk:
+	bspI2cInit();
+
     pinHandle = PIN_open(&pinState, pinTableFlame);
     if(!pinHandle) {
         System_abort("Error initializing board pins\n");
@@ -137,6 +145,13 @@ void Flame_init(void){
 	// Set interrupt in PIN Board_DP1
     PIN_registerIntCb(pinHandle, flameInterruptHandler);
     PIN_setInterrupt(pinHandle, Board_DP1 | PIN_IRQ_POSEDGE);
+
+    //Tmp sensor
+    sensorTmp007Init();
+
+    //Opt sensor
+    sensorOpt3001Init();
+    sensorOpt3001Enable(false);
 
 	// Disallow STANDBY mode while using the ADC.
 	// Power_setConstraint(Power_SB_DISALLOW);
@@ -158,10 +173,18 @@ void Flame_taskFxn(UArg arg0, UArg arg1){
 	SAMPLETYPE singleSample;
 	//uint8_t currentSample = 0;
 
+	// Tmp variables
+	uint16_t tempTarget, tempLocal;
+	float tTarget, tLocal;
+
+	//Opt variables
+	uint16_t opticalData;
+	float lux;
+
 	while(1){
 
 		// Wait until flame is detected
-		Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
+		//Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
 
 		//Sleep 100ms in IDLE mode
 		Task_sleep(100 * 1000 / Clock_tickPeriod);
@@ -177,6 +200,25 @@ void Flame_taskFxn(UArg arg0, UArg arg1){
 
 
 		System_printf("%d mv on ADC\r\n",singleSample);
+
+		// Temperature
+	    sensorTmp007Enable(true);
+	    Task_sleep(275 * 1000 / Clock_tickPeriod);
+	    sensorTmp007Read(&tempLocal, &tempTarget);
+	    sensorTmp007Enable(false);
+	    sensorTmp007Convert(tempLocal, tempTarget, &tTarget, &tLocal);
+
+	    System_printf("%f Local tmp\r\n",tLocal);
+	    System_printf("%f Target tmp\r\n",tTarget);
+
+	    // Ambient light
+	    sensorOpt3001Enable(true);
+	    Task_sleep(275 * 1000 / Clock_tickPeriod);
+	    sensorOpt3001Read(&opticalData);
+	    sensorOpt3001Enable(false);
+	    lux = sensorOpt3001Convert(opticalData);
+
+	    System_printf("%f Optical data\r\n",lux);
 		System_flush();
 	}
 }
