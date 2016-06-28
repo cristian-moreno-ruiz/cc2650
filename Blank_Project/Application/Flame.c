@@ -10,6 +10,9 @@
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Queue.h>
 
+#include <ti/sysbios/family/arm/cc26xx/Power.h>
+#include <ti/sysbios/family/arm/cc26xx/PowerCC2650.h>
+
 /* TI-RTOS Header files */
 #include <ti/drivers/PIN.h>
 #include <ti/drivers/pin/PINCC26XX.h>
@@ -36,39 +39,17 @@
 //#include "Drivers/util.h"
 #include "string.h"
 
-
-
-
 /*******************************************************************************
  * CONSTANTS
  */
 
-
-#define ALS_OUTPUT IOID_23
-
-// Task configuration
+// Task configuration (Priority and stack size)
 #define FLM_TASK_PRIORITY                      3
-#define FLM_TASK_STACK_SIZE                    2048
+#define FLM_TASK_STACK_SIZE                    1024
 
-// ADC Samples
-
-#define SAMPLECOUNT 8
+// ADC Sample type definition
 #define SAMPLETYPE uint16_t
 #define SAMPLESIZE sizeof(SAMPLETYPE)
-
-/*******************************************************************************
- * TYPEDEFS
- */
-
-
-
-
-/*******************************************************************************
- * GLOBAL VARIABLES
- */
-
-
-
 
 /*******************************************************************************
  * LOCAL VARIABLES
@@ -77,21 +58,17 @@
 Task_Struct flameTask;
 static uint8_t flameTaskStack[FLM_TASK_STACK_SIZE];
 
+// PIN config of flame task, with LED1, Board_DP1, and
 PIN_Config pinTableFlame[] = {
-    /*Board_LED0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
     Board_LED1 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-    Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP,
-	Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP,*/
-	ALS_OUTPUT   | PIN_INPUT_DIS | PIN_GPIO_OUTPUT_DIS,
+	Board_DP2   | PIN_INPUT_DIS | PIN_GPIO_OUTPUT_DIS,
 	Board_DP1	 | PIN_INPUT_EN,
     PIN_TERMINATE
 };
 
-
 // PIN handle and state
 static PIN_Handle pinHandle;
 static PIN_State pinState;
-
 
 /*******************************************************************************
  * LOCAL FUNCTIONS
@@ -100,14 +77,9 @@ static PIN_State pinState;
 static void Flame_taskFxn(UArg arg0, UArg arg1);
 void flameInterruptHandler(PIN_Handle handle, PIN_Id pinId);
 
-
-
-
 /*******************************************************************************
  * PUBLIC FUNCTIONS
  */
-
-
 
 void Flame_createTask(void){
 
@@ -124,20 +96,24 @@ void Flame_createTask(void){
 
 void Flame_init(void){
 
+	// Task_sleep(5000 * 1000 / Clock_tickPeriod);
+	// Clear console
 	System_flush();
 
-	// Standalone TAsk:
+	// Initialize I2C bus (this is done here because is the highest priority task, and will be executed first)
 	bspI2cInit();
 
+	// Initialize Board PINs
     pinHandle = PIN_open(&pinState, pinTableFlame);
     if(!pinHandle) {
         System_abort("Error initializing board pins\n");
     }
-    // Test LEDS
-    /*PIN_setOutputValue(pinHandle, Board_LED1, 1);
-	Task_sleep(500 * (1000 / Clock_tickPeriod));*/
 
-	// Set up ADC Config
+    // Test Red LED
+    PIN_setOutputValue(pinHandle, Board_LED1, 1);
+	Task_sleep(500 * (1000 / Clock_tickPeriod));
+
+	// Set up ADC Config in PIN Board_DP2
 	AUXWUCClockEnable(AUX_WUC_MODCLKEN0_ANAIF_M|AUX_WUC_MODCLKEN0_AUX_ADI4_M);
 	AUXADCSelectInput(ADC_COMPB_IN_AUXIO7);
 	AUXADCEnableSync(AUXADC_REF_FIXED, AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
@@ -146,84 +122,80 @@ void Flame_init(void){
     PIN_registerIntCb(pinHandle, flameInterruptHandler);
     PIN_setInterrupt(pinHandle, Board_DP1 | PIN_IRQ_POSEDGE);
 
-    //Tmp sensor
+    // Initialize Temperature sensor
     sensorTmp007Init();
 
-    //Opt sensor
+    // Initialize Ambient light sensor
     sensorOpt3001Init();
     sensorOpt3001Enable(false);
 
-	// Disallow STANDBY mode while using the ADC.
-	// Power_setConstraint(Power_SB_DISALLOW);
-
-    /*PIN_setOutputValue(pinHandle, Board_LED2, 1);
+	// Disallow STANDBY mode to use the ADC (Otherwise, it crashes when not debugging)
+	Power_setConstraint(Power_SB_DISALLOW);
 
     // Init process finished successfully
-	Task_sleep(1000 * (1000 / Clock_tickPeriod));
-	PIN_setOutputValue(pinHandle, Board_LED1, 0);
-	PIN_setOutputValue(pinHandle, Board_LED2, 0);*/
-
+    Task_sleep(500 * (1000 / Clock_tickPeriod));
+    PIN_setOutputValue(pinHandle, Board_LED1, 0);
 }
 
 void Flame_taskFxn(UArg arg0, UArg arg1){
 
 	Flame_init();
 
-	//SAMPLETYPE adcSamples[SAMPLECOUNT];
+	// ADC Sample variable declaration
 	SAMPLETYPE singleSample;
-	//uint8_t currentSample = 0;
 
-	// Tmp variables
+	// Temperature variables declaration
 	uint16_t tempTarget, tempLocal;
 	float tTarget, tLocal;
 
-	//Opt variables
+	// Ambient light variables declaration
 	uint16_t opticalData;
 	float lux;
 
 	while(1){
 
-		// Wait until flame is detected
-		//Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
+		// Wait until flame detector throws an interrupt
+		Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
 
-		//Sleep 100ms in IDLE mode
+		// Sleep 100ms in IDLE mode
 		Task_sleep(100 * 1000 / Clock_tickPeriod);
 
-		// Trigger ADC sampling
+		// Trigger ADC sampling and collect sample value
 		AUXADCGenManualTrigger();
-
 		Task_sleep(100 * 1000 / Clock_tickPeriod);
-
 		singleSample = AUXADCReadFifo();
-		// Clear ADC_IRQ flag. Note: Missing driver for this.
-		//HWREGBITW(AUX_EVCTL_BASE + AUX_EVCTL_O_EVTOMCUFLAGSCLR, AUX_EVCTL_EVTOMCUFLAGSCLR_ADC_IRQ_BITN) = 1;
-
-
 		System_printf("%d mv on ADC\r\n",singleSample);
 
-		// Temperature
+		// Get data from Temperature sensor
 	    sensorTmp007Enable(true);
 	    Task_sleep(275 * 1000 / Clock_tickPeriod);
 	    sensorTmp007Read(&tempLocal, &tempTarget);
 	    sensorTmp007Enable(false);
 	    sensorTmp007Convert(tempLocal, tempTarget, &tTarget, &tLocal);
 
+	    // Print value in debug console
 	    System_printf("%f Local tmp\r\n",tLocal);
-	    System_printf("%f Target tmp\r\n",tTarget);
 
-	    // Ambient light
+	    // Get data from Ambient light sensor
 	    sensorOpt3001Enable(true);
 	    Task_sleep(275 * 1000 / Clock_tickPeriod);
 	    sensorOpt3001Read(&opticalData);
 	    sensorOpt3001Enable(false);
 	    lux = sensorOpt3001Convert(opticalData);
 
+	    // Print value in debug console
 	    System_printf("%f Optical data\r\n",lux);
 		System_flush();
+
+		// Blink Red LED
+		PIN_setOutputValue(pinHandle, Board_LED1, 1);
+		Task_sleep(500 * (1000 / Clock_tickPeriod));
+		PIN_setOutputValue(pinHandle, Board_LED1, 0);
 	}
 }
 
 void flameInterruptHandler(PIN_Handle handle, PIN_Id pinId){
+	// Post semaphore when interrupt is thrown by the flame detector
 	Semaphore_post(flameSem);
 }
 

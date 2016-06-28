@@ -39,7 +39,7 @@
 
 
 
-// Task configuration
+// Task configuration (Priority and stack size)
 #define DST_TASK_PRIORITY                      1
 #define DST_TASK_STACK_SIZE                    2048
 
@@ -125,13 +125,13 @@ void Distance_init(void){
     PIN_setOutputValue(pinHandle, Board_LED1, 1);
 	Task_sleep(500 * (1000 / Clock_tickPeriod));*/
 
-    bspI2cInit();
+    //bspI2cInit();
 
     // Uncomment to change the address (may be done only once, and with only a sensor connected)
     //sensorSrf08ChangeAddress(0x72, 0x71);
 
     // INIT SRF08s
-    if(sensorSrf08InitMultiple()){
+    /*if(sensorSrf08InitMultiple()){
     	System_printf("Selected mode: Multiple sensors (3) \n");
     	multipleMode = true;
     }else if(sensorSrf08Init()){
@@ -140,8 +140,8 @@ void Distance_init(void){
     }else{
     	System_abort("Error initializing SRF08\n");
     }
-	System_flush();
-
+	System_flush();*/
+    multipleMode = true;
 
     /*PIN_setOutputValue(pinHandle, Board_LED2, 1);
 
@@ -184,9 +184,14 @@ void Distance_taskFxn(UArg arg0, UArg arg1){
 				System_printf("[Sensor 3] First Echo found: %u  cm\n\n", cm_3[0]);
 				System_flush();
 
+				srf08Data_1[0] = 0;
+				cm_1[0] = 0;
+
+
+
 			}
 
-			Task_sleep(5000 * (1000 / Clock_tickPeriod));
+			Task_sleep(500 * (1000 / Clock_tickPeriod));
 		}
 
 	}else{
@@ -200,7 +205,7 @@ void Distance_taskFxn(UArg arg0, UArg arg1){
 	    	System_printf("First Echo found: %u  cm\n", cm[0]);
 	    	System_flush();
 
-	    	Task_sleep(5000 * (1000 / Clock_tickPeriod));
+	    	//Task_sleep(5000 * (1000 / Clock_tickPeriod));
 		}
 	}
 }

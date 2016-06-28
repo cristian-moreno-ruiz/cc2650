@@ -39,7 +39,7 @@
 
 
 
-// Task configuration
+// Task configuration (Priority and stack size)
 #define MV_TASK_PRIORITY                      2
 #define MV_TASK_STACK_SIZE                    1024
 
@@ -68,7 +68,6 @@ static uint8_t movementTaskStack[MV_TASK_STACK_SIZE];
 
 PIN_Config pinTable[] = {
     Board_LED0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-    Board_LED1 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
     Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP,
 	Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP,
     PIN_TERMINATE
@@ -127,8 +126,8 @@ void Movement_init(void){
         System_abort("Error initializing board pins\n");
     }
     // Test LEDS
-    PIN_setOutputValue(pinHandle, Board_LED1, 1);
-	Task_sleep(500 * (1000 / Clock_tickPeriod));
+    //PIN_setOutputValue(pinHandle, Board_LED1, 1);
+	//Task_sleep(500 * (1000 / Clock_tickPeriod));
 
 
     //bspI2cInit();
@@ -155,7 +154,7 @@ void Movement_init(void){
     mpuIntStatus = sensorMpu9250IntStatus();
     // Init process finished successfully
 	Task_sleep(1000 * (1000 / Clock_tickPeriod));
-	PIN_setOutputValue(pinHandle, Board_LED1, 0);
+	//PIN_setOutputValue(pinHandle, Board_LED1, 0);
 	PIN_setOutputValue(pinHandle, Board_LED2, 0);
 
 
@@ -183,7 +182,7 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 			sensorMpu9250SwitchInterruptMode(FALSE,WOM_THR);
 
 			PIN_setOutputValue(pinHandle, Board_LED2, 1);
-			blinkRedLed();
+			//blinkRedLed();
 
 		} else if(wom){
 

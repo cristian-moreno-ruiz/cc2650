@@ -48,8 +48,8 @@ int main(void) {
 
 	PIN_init(BoardGpioInitTable);
 	
-	//Movement_createTask();
-	//Distance_createTask();
+	Movement_createTask();
+	Distance_createTask();
 	Flame_createTask();
 
 	BIOS_start();
