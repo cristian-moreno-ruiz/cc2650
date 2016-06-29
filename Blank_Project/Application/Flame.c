@@ -28,15 +28,12 @@
 /* Driverlib CPU functions, used here for CPUdelay*/
 #include <driverlib/cpu.h>
 
+// Drivers to use temperature and ambient light sensors
 #include "Drivers/sensor_tmp007.h"
 #include "Drivers/sensor_opt3001.h"
 #include "Drivers/sensor.h"
 #include "Drivers/bsp_i2c.h"
 
-// Drivers for motion sensor
-//#include "Board.h"
-//#include "movementservice.h"
-//#include "Drivers/util.h"
 #include "string.h"
 
 /*******************************************************************************
@@ -58,7 +55,7 @@
 Task_Struct flameTask;
 static uint8_t flameTaskStack[FLM_TASK_STACK_SIZE];
 
-// PIN config of flame task, with LED1, Board_DP1, and
+// PIN config of flame task, with LED1 (Red), Board_DP1, and Board_DP2
 PIN_Config pinTableFlame[] = {
     Board_LED1 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
 	Board_DP2   | PIN_INPUT_DIS | PIN_GPIO_OUTPUT_DIS,
@@ -154,8 +151,8 @@ void Flame_taskFxn(UArg arg0, UArg arg1){
 
 	while(1){
 
-		// Wait until flame detector throws an interrupt
-		Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
+		// Wait until flame detector throws an interrupt, only if flame detector output is low (otherwise continue)
+		if(PIN_getInputValue(PIN_ID(Board_DP1)) == 0) Semaphore_pend(flameSem, BIOS_WAIT_FOREVER);
 
 		// Sleep 100ms in IDLE mode
 		Task_sleep(100 * 1000 / Clock_tickPeriod);

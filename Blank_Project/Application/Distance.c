@@ -86,7 +86,6 @@ bool multipleMode;
  * LOCAL FUNCTIONS
  */
 
-#define FakeBlockingSlowWork()   CPUdelay(12e6)
 static void Distance_taskFxn(UArg arg0, UArg arg1);
 void blinkRedLedDistance(void);
 void blinkGreenLedDistance(void);

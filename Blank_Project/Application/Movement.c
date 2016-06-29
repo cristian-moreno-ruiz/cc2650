@@ -29,35 +29,17 @@
 #include "string.h"
 #include "Drivers/bsp_i2c.h"
 
-
-
-
 /*******************************************************************************
  * CONSTANTS
  */
-
-
-
 
 // Task configuration (Priority and stack size)
 #define MV_TASK_PRIORITY                      2
 #define MV_TASK_STACK_SIZE                    1024
 
-
-
-/*******************************************************************************
- * TYPEDEFS
- */
-
-
-
-
-/*******************************************************************************
- * GLOBAL VARIABLES
- */
-
-
-
+// Sampling behaviour when accelerometer is active
+#define INACTIVE_COUNT		5		// # of inactive periods to go idle
+#define SAMPLE_PERIOD		500		// Sampling period when active
 
 /*******************************************************************************
  * LOCAL VARIABLES
@@ -66,43 +48,33 @@
 Task_Struct movementTask;
 static uint8_t movementTaskStack[MV_TASK_STACK_SIZE];
 
+// Pin config of Movement task, only using LED0 (Green)
 PIN_Config pinTable[] = {
     Board_LED0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-    Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP,
-	Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP,
     PIN_TERMINATE
 };
 
-// Wake on motion threshold
+// Wake on motion threshold (in mg)
 #define WOM_THR                   10
 
+// Interrupt status
 static uint8_t mpuIntStatus;
-
 
 // PIN handle and state
 static PIN_Handle pinHandle;
 static PIN_State pinState;
 
-
 /*******************************************************************************
  * LOCAL FUNCTIONS
  */
 
-#define FakeBlockingSlowWork()   CPUdelay(12e6)
 static void Movement_taskFxn(UArg arg0, UArg arg1);
-void blinkRedLed(void);
-void blinkGreenLed(void);
 void pinInterruptHandler(PIN_Handle handle, PIN_Id pinId);
 void motionInterrupt(void);
-
-
-
 
 /*******************************************************************************
  * PUBLIC FUNCTIONS
  */
-
-
 
 void Movement_createTask(void){
 
@@ -120,22 +92,17 @@ void Movement_createTask(void){
 void Movement_init(void){
 
 	System_flush();
-
+	// Initialize Board PINs
     pinHandle = PIN_open(&pinState, pinTable);
     if(!pinHandle) {
         System_abort("Error initializing board pins\n");
     }
-    // Test LEDS
-    //PIN_setOutputValue(pinHandle, Board_LED1, 1);
-	//Task_sleep(500 * (1000 / Clock_tickPeriod));
 
-
-    //bspI2cInit();
-
+    // Initialize accelerometer
     if (sensorMpu9250Init()){
       //SensorTagMov_reset();
       sensorMpu9250RegisterCallback(motionInterrupt);
-      PIN_setOutputValue(pinHandle, Board_LED2, 1);
+      PIN_setOutputValue(pinHandle, Board_LED0, 1);
       System_printf("Successful accelerometer Test\n");
       System_flush();
     } else{
@@ -144,115 +111,81 @@ void Movement_init(void){
     	return;
     }
 
-
-    if (sensorMpu9250Reset())
-    {
+    // Set accelerometer in low power mode and WOM
+    if (sensorMpu9250Reset()){
       sensorMpu9250WomEnable(WOM_THR);
     }
 
-
+    // Set WOM callback function
     mpuIntStatus = sensorMpu9250IntStatus();
+
     // Init process finished successfully
-	Task_sleep(1000 * (1000 / Clock_tickPeriod));
-	//PIN_setOutputValue(pinHandle, Board_LED1, 0);
-	PIN_setOutputValue(pinHandle, Board_LED2, 0);
-
-
+	Task_sleep(500 * (1000 / Clock_tickPeriod));
+	PIN_setOutputValue(pinHandle, Board_LED0, 0);
 }
 
 void Movement_taskFxn(UArg arg0, UArg arg1){
 
 	Movement_init();
+
+	// Acceleration variables declaration
 	uint8_t accData[6];
 	int16_t accel_x, accel_y, accel_z;
-	uint8_t range;
-	bool wom;
 	float accelx, accely, accelz;
+
+	// Counter of periods without detecting activity
 	int inactive;
 
 	while(1){
 
+		// Wait for movement detected (When starting the program, an interrupt is thrown once so it posts the semaphore)
 		Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
+
+		// Check which type of interrupt is triggered (WOM or DataReady)
 		mpuIntStatus = sensorMpu9250IntStatus();
-		System_printf("Interrupt Status: %u \n", mpuIntStatus);
-		System_printf("WOM Status: %u \n", wom);
-		System_flush();
-		if((mpuIntStatus & MPU_MOVEMENT) && wom){
-			inactive = 0;
-			sensorMpu9250SwitchInterruptMode(FALSE,WOM_THR);
 
-			PIN_setOutputValue(pinHandle, Board_LED2, 1);
-			//blinkRedLed();
+		if((mpuIntStatus & MPU_MOVEMENT) ){						// WOM interrupt
+			inactive = 0;										// Start inactive counter
+			sensorMpu9250SwitchInterruptMode(FALSE,WOM_THR);	// Enable Data ready interrupt
+			PIN_setOutputValue(pinHandle, Board_LED0, 1);		// Switch green LED on
+		} else {//if(wom){										// Data Ready interrupt
 
-		} else if(wom){
-
-
-
-
+			// Read and acomodate accelerometer raw data
 			sensorMpu9250AccRead((uint16_t*) &accData);
-			//System_printf("Accel Raw: %u \n", accData);
-			System_flush();
-
-			range = sensorMpu9250AccReadRange();
-
-			System_printf("Accelerometer Range: %u\n", range);
-
-
 			accel_x = (((int16_t)accData[1]) << 8) | accData[0];
 			accel_y = (((int16_t)accData[3]) << 8) | accData[2];
 			accel_z = (((int16_t)accData[5]) << 8) | accData[4];
 
+			// Convert accelerometer raw data to acceleration units (g)
 			accelx = sensorMpu9250AccConvert(accel_x);
 			accely = sensorMpu9250AccConvert(accel_y);
 			accelz = sensorMpu9250AccConvert(accel_z);
 
+			// Print measured acceleration
 			System_printf("Accel data x: %1.2f\n", accelx);
 			System_printf("Accel data y: %1.2f\n", accely);
 			System_printf("Accel data z: %1.2f \n", accelz);
 			System_flush();
 
-			if (inactive == 5){
+			// If the inactivity timeout expires, enable WOM and low power mode
+			if (inactive == INACTIVE_COUNT){
 				sensorMpu9250SwitchInterruptMode(TRUE,WOM_THR);
-				wom = FALSE;
-				PIN_setOutputValue(pinHandle, Board_LED2, 0);
+
+				// Ignore first interrupt, produced just after activating WOM and low power mode
+				Task_sleep(250 * (1000 / Clock_tickPeriod));
+				Semaphore_pend(motionSem, BIOS_WAIT_FOREVER);
+				mpuIntStatus = sensorMpu9250IntStatus();
+				PIN_setOutputValue(pinHandle, Board_LED0, 0);	//Switch green LED off
 			}
 
+			// Increase inactive timer
 			inactive++;
-			Task_sleep(500 * (1000 / Clock_tickPeriod));
-
-
-
-		} else{
-			wom = TRUE;
+			Task_sleep(SAMPLE_PERIOD * (1000 / Clock_tickPeriod));
 		}
-
 	}
 }
 
-void pinInterruptHandler(PIN_Handle handle, PIN_Id pinId){
-	// Signal the semaphore (button has been pressed)
-	Semaphore_post(motionSem);
-}
-
 void motionInterrupt(void){
-	// Wake up the application thread
-	//mpuDataRdy = true;
-	//sensorReadScheduled = true;
+	// Post semaphore when interrupt is thrown by the accelerometer
 	Semaphore_post(motionSem);
 }
-
-void blinkRedLed(void){
-	PIN_setOutputValue(pinHandle, Board_LED1, 1);
-	Task_sleep(500 * (1000 / Clock_tickPeriod));
-	PIN_setOutputValue(pinHandle, Board_LED1, 0);
-}
-
-void blinkGreenLed(void){
-	PIN_setOutputValue(pinHandle, Board_LED2, 1);
-	Task_sleep(500 * (1000 / Clock_tickPeriod));
-	PIN_setOutputValue(pinHandle, Board_LED2, 0);
-}
-
-
-
-
