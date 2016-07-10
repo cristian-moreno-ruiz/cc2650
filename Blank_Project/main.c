@@ -45,13 +45,14 @@
 
 
 int main(void) {
-
 	PIN_init(BoardGpioInitTable);
 	
+	// Create all tasks
 	Movement_createTask();
 	Distance_createTask();
 	Flame_createTask();
 
+	// Start BIOS scheduler, ISRs and semaphores
 	BIOS_start();
 
 	return 0;

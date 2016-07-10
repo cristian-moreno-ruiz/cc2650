@@ -446,18 +446,7 @@ bool sensorMpu9250WomEnable(uint8_t threshold)
   return true;
 }
 
-/*******************************************************************************
-* @fn          sensorMpu9250SwitchInterruptMode
-*
-* @brief       Switch from WOM interrupt to interrupt on data ready (and viceversa)
-*
-* @param       bool Mode (TRUE: WOM, FALSE: interrupt on data ready + WOM)
-* @param       threshold - wake-up trigger threshold (min 4 mg, max 1020mg) [only for WOM mode]
-*
-*
-* @return      Return TRUE if evth goes well
-*/
-
+// Switch from WOM interrupt to interrupt on data ready (and viceversa) Return TRUE if evth goes well
 bool sensorMpu9250SwitchInterruptMode(bool mode, uint8_t threshold){
 
 	ST_ASSERT(sensorMpu9250PowerIsOn());

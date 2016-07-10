@@ -53,23 +53,13 @@
 #define TRANSMIT_BURST					0x5C
 #define FAKE_SCAN_CM					0x57
 
-// Sensor Selection/Deselection
+// Sensors Selection/Deselection
 
 #define SENSOR_SELECT_1()				bspI2cSelect(BSP_I2C_INTERFACE_0,SENSOR_I2C_ADDRESS_1)
 #define SENSOR_SELECT_2()				bspI2cSelect(BSP_I2C_INTERFACE_0,SENSOR_I2C_ADDRESS_2)
 #define SENSOR_SELECT_3()				bspI2cSelect(BSP_I2C_INTERFACE_0,SENSOR_I2C_ADDRESS_3)
 #define SENSOR_DESELECT()				bspI2cDeselect()
 
-
-/* -----------------------------------------------------------------------------
-*                           Typedefs
-* ------------------------------------------------------------------------------
-*/
-
-/* -----------------------------------------------------------------------------
-*                           Macros
-* ------------------------------------------------------------------------------
-*/
 
 /* -----------------------------------------------------------------------------
 *                           Local Functions
@@ -83,24 +73,12 @@ bool sensorSrf08SetMaxGain(uint8_t maxGain);
 bool sensorSrf08SetRangeMultiple(uint8_t maxRange);
 bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain);
 
-
-/* -----------------------------------------------------------------------------
-*                           Local Variables
-* ------------------------------------------------------------------------------
-*/
-
-
-/* -----------------------------------------------------------------------------
-*                            Functions
-* ------------------------------------------------------------------------------
-*/
-
-
 /* -----------------------------------------------------------------------------
 *                        SINGLE SENSOR USE
 * ------------------------------------------------------------------------------
 */
 
+// Change address of a sensor (only one sensors can be connected to the bus)
 bool sensorSrf08ChangeAddress(uint8_t oldAddress, uint8_t newAddress){
 
 	uint8_t val;
@@ -119,6 +97,7 @@ bool sensorSrf08ChangeAddress(uint8_t oldAddress, uint8_t newAddress){
 	val = CHANGE_SEQ_3;
 	sensorWriteReg(COMMAND_REGISTER, &val, 1);
 
+	// Write new address
 	val = newAddress;
 	bool success = sensorWriteReg(COMMAND_REGISTER, &val, 1);
 
@@ -128,7 +107,7 @@ bool sensorSrf08ChangeAddress(uint8_t oldAddress, uint8_t newAddress){
 	return true;
 }
 
-
+// Initialization of one only sensor: Check connectivity and set range and gain to maximum
 bool sensorSrf08Init(void){
 
 	if (!SENSOR_SELECT_1()){
@@ -145,7 +124,7 @@ bool sensorSrf08Init(void){
 	return success;
 }
 
-
+// Set custom value of the range register
 bool sensorSrf08SetRange(uint8_t maxRange){
 	if (!SENSOR_SELECT_1()){
 		return false;
@@ -159,7 +138,7 @@ bool sensorSrf08SetRange(uint8_t maxRange){
 	return success;
 }
 
-
+// Set custom value of the max gain register
 bool sensorSrf08SetMaxGain(uint8_t maxGain){
 	if (!SENSOR_SELECT_1()){
 		return false;
@@ -171,7 +150,7 @@ bool sensorSrf08SetMaxGain(uint8_t maxGain){
 	return success;
 }
 
-
+// Send Scan command and read data obtained after 70 ms
 bool sensorSrf08Scan(uint16_t *data){
 
 	// Send "Range Start" command
@@ -199,7 +178,7 @@ bool sensorSrf08Scan(uint16_t *data){
 	return success;
 }
 
-
+// Convert raw binary value to cm units
 int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm){
 	int8_t i, nEchoes = 0;
 	for(i = 0; i < DATA_SIZE; i++){
@@ -216,7 +195,7 @@ int8_t sensorSrf08ConvertCm(uint8_t *data, uint16_t *cm){
 */
 
 
-
+// Initialize three sensors: Check connectivity to all sensors and set their range and gain to maximum
 bool sensorSrf08InitMultiple(void){
 
 	// SENSOR 1
@@ -247,7 +226,7 @@ bool sensorSrf08InitMultiple(void){
 	return success;
 }
 
-
+// Set custom value of the range register of all three sensors
 bool sensorSrf08SetRangeMultiple(uint8_t maxRange){
 	// SENSOR 1
 	if (!SENSOR_SELECT_1()){
@@ -276,7 +255,7 @@ bool sensorSrf08SetRangeMultiple(uint8_t maxRange){
 	return success;
 }
 
-
+// Set custom value of the max gain register of all three sensors
 bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain){
 	// SENSOR 1
 	if (!SENSOR_SELECT_1()){
@@ -305,7 +284,7 @@ bool sensorSrf08SetMaxGainMultiple(uint8_t maxGain){
 	return success;
 }
 
-
+// Send scan command sequentially to all sensors, waiting 70 ms between each sensor. Then, read obtained data from all sensors
 bool sensorSrf08ScanMultiple(uint16_t *data_1, uint16_t *data_2, uint16_t *data_3){
 
 	bool success;
@@ -353,7 +332,7 @@ bool sensorSrf08ScanMultiple(uint16_t *data_1, uint16_t *data_2, uint16_t *data_
 	return success;
 }
 
-
+// Send scan command to sensor 1, and fake scan to sensors 2 and 3. Wait 70 ms and read data obtained from all sensors.
 bool sensorSrf02ScanDistributed(uint16_t *data_1, uint16_t *data_2, uint16_t *data_3){
 
 	bool success;

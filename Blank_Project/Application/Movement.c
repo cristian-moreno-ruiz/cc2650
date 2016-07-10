@@ -39,7 +39,7 @@
 
 // Sampling behaviour when accelerometer is active
 #define INACTIVE_COUNT		5		// # of inactive periods to go idle
-#define SAMPLE_PERIOD		500		// Sampling period when active
+#define SAMPLE_PERIOD		100		// Sampling period when active
 
 /*******************************************************************************
  * LOCAL VARIABLES
@@ -100,7 +100,6 @@ void Movement_init(void){
 
     // Initialize accelerometer
     if (sensorMpu9250Init()){
-      //SensorTagMov_reset();
       sensorMpu9250RegisterCallback(motionInterrupt);
       PIN_setOutputValue(pinHandle, Board_LED0, 1);
       System_printf("Successful accelerometer Test\n");
