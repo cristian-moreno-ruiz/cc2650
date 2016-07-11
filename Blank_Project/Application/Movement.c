@@ -40,6 +40,7 @@
 // Sampling behaviour when accelerometer is active
 #define INACTIVE_COUNT		5		// # of inactive periods to go idle
 #define SAMPLE_PERIOD		100		// Sampling period when active
+#define OVERTURN			0.707		// Minimum acceleration in g direction to consider the container as overturned a = cos(angle)
 
 /*******************************************************************************
  * LOCAL VARIABLES
@@ -165,6 +166,17 @@ void Movement_taskFxn(UArg arg0, UArg arg1){
 			System_printf("Accel data y: %1.2f\n", accely);
 			System_printf("Accel data z: %1.2f \n", accelz);
 			System_flush();
+
+			// If sensor is overturned, blink green LED and do not go sleep
+			if (accelz < OVERTURN){
+				// Restart inactive timer
+				inactive = 0;
+
+				// Blink green LED
+				PIN_setOutputValue(pinHandle, Board_LED0, 0);
+				Task_sleep(SAMPLE_PERIOD/2 * (1000 / Clock_tickPeriod));
+				PIN_setOutputValue(pinHandle, Board_LED0, 1);
+			}
 
 			// If the inactivity timeout expires, enable WOM and low power mode
 			if (inactive == INACTIVE_COUNT){
